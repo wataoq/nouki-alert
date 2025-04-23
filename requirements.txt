@@ -1,6 +1,4 @@
 functions-framework
-slack_sdk
-google-cloud-secret-manager
 pandas
 openpyxl
 dropbox
