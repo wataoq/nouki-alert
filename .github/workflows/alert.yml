@@ -1,17 +1,14 @@
 # .github/workflows/alert.yml
 name: Daily Nouki Alerts
 
-# 毎朝 8:00 JST → UTC の 23:00 (前日)
 on:
   schedule:
-    - cron: '0 23 * * *'
+    - cron: '0 23 * * *'   # JST 08:00
   workflow_dispatch:
 
 jobs:
   run-alert:
     runs-on: ubuntu-latest
-
-    # ── Secrets をまとめて環境変数に展開 ────────────────────────────
     env:
       DROPBOX_APP_KEY:       ${{ secrets.DROPBOX_APP_KEY }}
       DROPBOX_APP_SECRET:    ${{ secrets.DROPBOX_APP_SECRET }}
@@ -23,34 +20,30 @@ jobs:
       EMAIL_RECIPIENTS:      ${{ secrets.EMAIL_RECIPIENTS }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install deps
         run: pip install --no-cache-dir -r requirements.txt
 
-      # ── デバッグ出力 ───────────────────────────────────────────
-      - name: Debug: print SMTP settings
+      - name: DEBUG - print env
         run: |
-          echo "SMTP_SERVER      = '${{ env.SMTP_SERVER }}'"
-          echo "SMTP_PORT        = '${{ env.SMTP_PORT }}'"
-          echo "SMTP_USER        = '${{ env.SMTP_USER }}'"
-          echo "EMAIL_RECIPIENTS = '${{ env.EMAIL_RECIPIENTS }}'"
+          echo "SERVER=${SMTP_SERVER}"
+          echo "PORT  =${SMTP_PORT}"
 
-      # ── 4本のスクリプトを順に実行 ───────────────────────────────
-      - name: Run 裁断 7日前 (alert_saidan.py)
+      - name: 裁断 7日前
         run: python alert_saidan.py
 
-      - name: Run 補正 7日前 (alert_housei.py)
+      - name: 補正 7日前
         run: python alert_housei.py
 
-      - name: Run 量産 7日前 (alert_nouki.py)
+      - name: 量産 7日前
         run: python alert_nouki.py
 
-      - name: Run 生産職出し 1日前 (alert_syokudasi.py)
+      - name: 生産職出し 1日前
         run: python alert_syokudasi.py
