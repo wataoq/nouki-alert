@@ -7,6 +7,27 @@ on:
     - cron: '0 23 * * *'
   workflow_dispatch:    # 手動実行ボタン
 
+   steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      # ── ここからデバッグ用 ───────────────────────────
+      - name: Debug: print SMTP_SERVER
+        run: |
+          echo "SMTP_SERVER      = '${{ env.SMTP_SERVER }}'"
+          echo "SMTP_PORT        = '${{ env.SMTP_PORT }}'"
+          echo "SMTP_USER        = '${{ env.SMTP_USER }}'"
+          echo "EMAIL_RECIPIENTS = '${{ env.EMAIL_RECIPIENTS }}'"
+
+      # ── ここまでデバッグ用 ─────────────────────────
+      - name: Run Saidan Alert
+        run: python alert_saidan.py
+
 jobs:
   alert:
     runs-on: ubuntu-latest
