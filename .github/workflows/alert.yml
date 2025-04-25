@@ -11,7 +11,7 @@ jobs:
   run-alert:
     runs-on: ubuntu-latest
 
-    # Secrets をまとめて環境変数に展開
+    # ── Secrets をまとめて環境変数に展開 ────────────────────────────
     env:
       DROPBOX_APP_KEY:       ${{ secrets.DROPBOX_APP_KEY }}
       DROPBOX_APP_SECRET:    ${{ secrets.DROPBOX_APP_SECRET }}
@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: pip install --no-cache-dir -r requirements.txt
 
-      # ── デバッグ出力 ───────────────────────────────
+      # ── デバッグ出力 ───────────────────────────────────────────
       - name: Debug: print SMTP settings
         run: |
           echo "SMTP_SERVER      = '${{ env.SMTP_SERVER }}'"
@@ -42,22 +42,15 @@ jobs:
           echo "SMTP_USER        = '${{ env.SMTP_USER }}'"
           echo "EMAIL_RECIPIENTS = '${{ env.EMAIL_RECIPIENTS }}'"
 
-      - name: Run alert_saidan.py
+      # ── 4本のスクリプトを順に実行 ───────────────────────────────
+      - name: Run 裁断 7日前 (alert_saidan.py)
         run: python alert_saidan.py
 
-      # ▼ 4本あるスクリプトを順に実行 ▼
-      - name: Run 裁断 7日前
-        run: python alert_saidan.py
-        env: ${{ secrets }}          # Secrets 全部注入
-
-      - name: Run 補正 7日前
+      - name: Run 補正 7日前 (alert_housei.py)
         run: python alert_housei.py
-        env: ${{ secrets }}
 
-      - name: Run 量産 7日前
+      - name: Run 量産 7日前 (alert_nouki.py)
         run: python alert_nouki.py
-        env: ${{ secrets }}
 
-      - name: Run 生産職出し 1日前
+      - name: Run 生産職出し 1日前 (alert_syokudasi.py)
         run: python alert_syokudasi.py
-        env: ${{ secrets }}
