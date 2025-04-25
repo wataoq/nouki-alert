@@ -1,47 +1,49 @@
 # .github/workflows/alert.yml
 name: Daily Nouki Alerts
 
+# 毎朝 8:00 JST → UTC の 23:00 (前日)
 on:
   schedule:
-    # 毎日 08:00 JST = 毎日 23:00 UTC
     - cron: '0 23 * * *'
-  workflow_dispatch:    # 手動実行ボタン
+  workflow_dispatch:
 
-   steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
+jobs:
+  run-alert:
+    runs-on: ubuntu-latest
+
+    # Secrets をまとめて環境変数に展開
+    env:
+      DROPBOX_APP_KEY:       ${{ secrets.DROPBOX_APP_KEY }}
+      DROPBOX_APP_SECRET:    ${{ secrets.DROPBOX_APP_SECRET }}
+      DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+      SMTP_SERVER:           ${{ secrets.SMTP_SERVER }}
+      SMTP_PORT:             ${{ secrets.SMTP_PORT }}
+      SMTP_USER:             ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD:         ${{ secrets.SMTP_PASSWORD }}
+      EMAIL_RECIPIENTS:      ${{ secrets.EMAIL_RECIPIENTS }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - name: Install deps
-        run: pip install -r requirements.txt
+          python-version: '3.11'
 
-      # ── ここからデバッグ用 ───────────────────────────
-      - name: Debug: print SMTP_SERVER
+      - name: Install dependencies
+        run: pip install --no-cache-dir -r requirements.txt
+
+      # ── デバッグ出力 ───────────────────────────────
+      - name: Debug: print SMTP settings
         run: |
           echo "SMTP_SERVER      = '${{ env.SMTP_SERVER }}'"
           echo "SMTP_PORT        = '${{ env.SMTP_PORT }}'"
           echo "SMTP_USER        = '${{ env.SMTP_USER }}'"
           echo "EMAIL_RECIPIENTS = '${{ env.EMAIL_RECIPIENTS }}'"
 
-      # ── ここまでデバッグ用 ─────────────────────────
-      - name: Run Saidan Alert
+      - name: Run alert_saidan.py
         run: python alert_saidan.py
-
-jobs:
-  alert:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
 
       # ▼ 4本あるスクリプトを順に実行 ▼
       - name: Run 裁断 7日前
