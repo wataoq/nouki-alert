@@ -13,7 +13,7 @@ from common_utils import download_excel, send_email, should_alert
 RECIPIENT_KEY = "EMAIL_SEISAN"
 # ──────────────────────────────────────────────────────────────────────────
 
-ALERT_DAYS, ALERT_NAME = 7, "納前納期"
+ALERT_DAYS, ALERT_NAME = 7, "中上げ納期"
 FILE_PATH  = "/生産部/工場予定表(2025)_新レイアウト.xlsx"
 SHEET_NAME = "25AW"
 
@@ -22,7 +22,7 @@ COL_BRAND  = 3    # D列: ブランド
 COL_PERSON = 2    # C列: 担当者名
 COL_ITEM   = 4    # E列: 品番
 COL_CHECK  = 5    # F列: チェック (TRUE/FALSE)
-COL_DUE    = 23   # X列: 納前納期
+COL_DUE    = 21   # X列: 納前納期
 
 def fetch_items() -> list[dict]:
     raw = download_excel(FILE_PATH)
