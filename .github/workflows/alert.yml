@@ -1,4 +1,3 @@
-# .github/workflows/alert.yml
 name: Daily Nouki Alerts
 
 on:
@@ -31,19 +30,24 @@ jobs:
       - name: Install deps
         run: pip install --no-cache-dir -r requirements.txt
 
-      - name: DEBUG - print env
-        run: |
-          echo "SERVER=${SMTP_SERVER}"
-          echo "PORT  =${SMTP_PORT}"
++      - name: DEBUG - print recipients
++        run: echo "EMAIL_RECIPIENTS = '${{ env.EMAIL_RECIPIENTS }}'"
 
-      - name: 裁断 7日前
+      # ── ６本のスクリプトを順に実行 ───────────────────────────────
+      - name: 裁断 7日前 (alert_saidan.py)
         run: python alert_saidan.py
 
-      - name: 補正 7日前
+      - name: 補正 7日前 (alert_housei.py)
         run: python alert_housei.py
 
-      - name: 量産 7日前
++      - name: 中上げ 7日前 (alert_nakaage.py)
++        run: python alert_nakaage.py
+
+      - name: 量産 7日前 (alert_nouki.py)
         run: python alert_nouki.py
 
-      - name: 生産職出し 1日前
++      - name: 納前 7日前 (alert_noumae.py)
++        run: python alert_noumae.py
+
+      - name: 生産職出し 1日前 (alert_syokudasi.py)
         run: python alert_syokudasi.py
