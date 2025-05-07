@@ -84,6 +84,10 @@ def run():
     # ────────────────────────────────────────────────────────────────
 
     rows = fetch_items()
+    if not rows:  # 該当する品番がない場合はメールを送信しない
+        logging.info("該当する品番がないため、メールを送信しません。")
+        return
+        
     body = build_body(rows)
     send_email(f"[{ALERT_NAME}アラート]", body)
 
