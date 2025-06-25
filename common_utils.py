@@ -45,62 +45,32 @@ def download_excel(path: str) -> bytes | None:
         return None
 
 
-# ──────────────────────────────────────────────────────────────────────
-# 行スキップ判定（色付きセルを除外）
-# ──────────────────────────────────────────────────────────────────────
-WHITE_CODES = {"00000000", "FFFFFFFF", None}   # XLSX で “白” とみなす RGB 値
+# ------------------------------------------------------------------
+#  ❖ これだけで OK
+#     - 背景色が #F7DFDF（ARGB でも RGB でも可）のセルを持つ行だけ除外
+#     - 文字色は判定しない
+# ------------------------------------------------------------------
+SKIP_BG_HEX = {"F7DFDF"}        # 除外したい 6 桁 RGB を列挙
 
+def _is_skip_color(argb: str | None) -> bool:
+    """openpyxl の ARGB 8桁 or RGB 6桁を受け取り、対象色なら True"""
+    if argb is None:
+        return False
+    return argb[-6:].upper() in SKIP_BG_HEX      # 下 6 桁で比較
 
-def rows_to_skip_by_color(
-    raw_bytes: bytes,
-    sheet_name: str,
-    target_col: int,
-    first_data_row_excel: int = 8,
-) -> Set[int]:
-    """
-    指定列 (0‑index) のセルが「白以外の背景色」または「白以外の文字色」
-    になっている行番号（DataFrame index 相当）をセットで返す。
-
-    Parameters
-    ----------
-    raw_bytes : bytes
-        Dropbox から取得した XLSX 生データ
-    sheet_name : str
-        対象のシート名
-    target_col : int
-        チェックする列の 0‑index
-    first_data_row_excel : int, default 8
-        Excel の何行目から DataFrame 0 行目が始まるか（デフォルト: 行見出し 7 行 +1）
-
-    Returns
-    -------
-    set[int]
-        スキップすべき DataFrame 行 index
-    """
+def rows_to_skip_by_color(raw_bytes: bytes, sheet_name: str,
+                          target_col: int,
+                          first_data_row_excel: int = 8) -> set[int]:
+    from openpyxl import load_workbook
     wb = load_workbook(io.BytesIO(raw_bytes), data_only=True)
     ws = wb[sheet_name]
 
-    skip: Set[int] = set()
-    # openpyxl は 1‑index 行番号。enumerate start=0 で DF index に合わせる
-    for df_row, row in enumerate(
-        ws.iter_rows(min_row=first_data_row_excel), start=0
-    ):
+    skip = set()
+    for df_row_idx, row in enumerate(ws.iter_rows(min_row=first_data_row_excel), 0):
         cell = row[target_col]
-
-        # 背景色
-        fill = cell.fill
-        bg_rgb = getattr(fill.fgColor, "rgb", None)
-        custom_bg = fill.patternType and bg_rgb not in WHITE_CODES
-
-        # 文字色
-        font = cell.font
-        fg_rgb = getattr(font.color, "rgb", None)
-        custom_fg = fg_rgb not in WHITE_CODES
-
-        if custom_bg or custom_fg:
-            skip.add(df_row)
-
-    logging.debug("rows_to_skip_by_color → %s", skip)
+        bg_rgb = getattr(cell.fill.fgColor, "rgb", None)
+        if _is_skip_color(bg_rgb):
+            skip.add(df_row_idx)
     return skip
 
 
