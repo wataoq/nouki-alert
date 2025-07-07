@@ -17,6 +17,8 @@ from typing import Set
 import dropbox
 from openpyxl import load_workbook
 
+IS_DRY_RUN = os.getenv("DRY_RUN", "0") == "1"   # ★追加
+
 logging.basicConfig(level=logging.INFO)
 
 # ──────────────────────────────────────────────────────────────────────
@@ -28,6 +30,7 @@ def get_dropbox_client() -> dropbox.Dropbox:
         app_key              = os.environ["DROPBOX_APP_KEY"],
         app_secret           = os.environ["DROPBOX_APP_SECRET"],
         oauth2_refresh_token = os.environ["DROPBOX_REFRESH_TOKEN"],
+        timeout              = int(os.getenv("DROPBOX_TIMEOUT", 900)),  # ★追加
     )
 
 
@@ -50,7 +53,7 @@ def download_excel(path: str) -> bytes | None:
 #     - 背景色が #F7DFDF（ARGB でも RGB でも可）のセルを持つ行だけ除外
 #     - 文字色は判定しない
 # ------------------------------------------------------------------
-SKIP_BG_HEX = {"F7DFDF"}        # 除外したい 6 桁 RGB を列挙
+SKIP_BG_HEX = {"f7dfdf"}        # 除外したい 6 桁 RGB を列挙
 
 def _is_skip_color(argb: str | None) -> bool:
     """openpyxl の ARGB 8桁 or RGB 6桁を受け取り、対象色なら True"""
@@ -80,14 +83,17 @@ def rows_to_skip_by_color(raw_bytes: bytes, sheet_name: str,
 def send_email(subject: str, body: str):
     """
     TEXT メールを SMTP で送信。
-    必要な環境変数:
-        • SMTP_SERVER, SMTP_PORT(省略可), SMTP_USER, SMTP_PASSWORD
-        • EMAIL_RECIPIENTS (カンマ区切り)
+    DRY_RUN=1 の場合はログ出力だけでスキップ。
     """
-    smtp_server   = os.environ["SMTP_SERVER"]           # 例: smtp.gmail.com
+
+    if IS_DRY_RUN:                                 # ★追加
+        logging.info("🟡 DRY‑RUN → メール送信スキップ: %s", subject)
+        return
+
+    smtp_server   = os.environ["SMTP_SERVER"]
     smtp_port     = int(os.environ.get("SMTP_PORT", 587))
-    smtp_user     = os.environ["SMTP_USER"]             # 送信元アドレス
-    smtp_password = os.environ["SMTP_PASSWORD"]         # アプリパスワード
+    smtp_user     = os.environ["SMTP_USER"]
+    smtp_password = os.environ["SMTP_PASSWORD"]
     recipients    = os.environ["EMAIL_RECIPIENTS"].split(",")
 
     msg = MIMEText(body, "plain", "utf-8")
@@ -100,10 +106,11 @@ def send_email(subject: str, body: str):
             s.starttls()
             s.login(smtp_user, smtp_password)
             s.send_message(msg)
-        logging.info("✅  メール送信完了 → %s", recipients)
+        logging.info("✅ メール送信完了 → %s", recipients)
     except Exception as e:
         logging.error("❌ メール送信エラー: %s", e)
         raise
+
 
 
 # ──────────────────────────────────────────────────────────────────────
