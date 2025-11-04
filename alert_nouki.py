@@ -49,7 +49,16 @@ def fetch_items_by_season() -> list[tuple[str, list[dict]]]:
     if not raw:
         return []
 
-    return [(label, _extract_rows(raw, sheet)) for label, sheet in SEASONS]
+    seasonal_rows: list[tuple[str, list[dict]]] = []
+    for label, sheet in SEASONS:
+        try:
+            rows = _extract_rows(raw, sheet)
+        except ValueError:
+            logging.warning("シーズン %s のシートが見つからないため、スキップします。", sheet)
+            continue
+        seasonal_rows.append((label, rows))
+
+    return seasonal_rows
 
 
 def _build_section(rows: list[dict]) -> list[str]:
